@@ -3,7 +3,7 @@ import { kv } from '@vercel/kv';
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
-      const hash = (await kv.hgetall('submissions')) || {};
+      const hash = (await kv.hgetall('submissions_by_name')) || {};
       const submissions = Object.values(hash).map((v) => {
         if (typeof v === 'string') {
           try { return JSON.parse(v); } catch (e) { return null; }
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
           return;
         }
         // 이름을 key로 저장하므로, 같은 이름으로 다시 제출하면 이전 답변을 덮어씀
-        await kv.hset('submissions', { [body.name]: JSON.stringify(body.ratings) });
+        await kv.hset('submissions_by_name', { [body.name]: JSON.stringify(body.ratings) });
         res.status(200).json({ ok: true });
         return;
       }
