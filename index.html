@@ -31,22 +31,26 @@
   .title{font-family:Georgia,"Times New Roman",serif;font-size:24px;font-weight:700;color:var(--gold-bright);margin:6px 0 2px;text-align:center;}
   .subtitle{text-align:center;color:var(--text-dim);font-size:12.5px;margin-bottom:18px;line-height:1.5;}
   .card{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;}
-  .progress-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-dim);margin-bottom:10px;}
-  .progress-bar{height:6px;background:var(--bg-panel-2);border-radius:4px;overflow:hidden;margin-bottom:4px;}
-  .progress-fill{height:100%;background:linear-gradient(90deg, var(--gold), var(--teal));transition:width 0.4s ease;}
-  .name-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
-  .name-btn{background:var(--bg-panel-2);border:1px solid var(--line);color:var(--text);padding:13px 8px;border-radius:8px;font-size:14.5px;font-weight:600;cursor:pointer;text-align:center;}
-  .name-btn.voted{color:var(--text-dim);opacity:0.55;}
-  .name-btn .tag{display:block;font-size:10px;color:var(--teal);margin-top:2px;font-weight:500;}
-  .link-btn{display:block;text-align:center;color:var(--teal);font-size:13.5px;font-weight:600;margin-top:16px;cursor:pointer;background:none;border:none;width:100%;padding:8px;}
   .rate-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
   .rate-header h2{font-size:17px;margin:0;color:var(--gold-bright);}
   .rate-count{font-size:13px;color:var(--text-dim);}
-  .target-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);}
+  .target-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);gap:8px;}
   .target-row:last-child{border-bottom:none;}
-  .target-name{font-size:14.5px;font-weight:600;flex-shrink:0;width:74px;}
-  .tier-buttons{display:flex;gap:5px;flex:1;justify-content:flex-end;}
-  .tier-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg-panel-2);color:var(--text-dim);font-size:13px;font-weight:700;cursor:pointer;}
+  .target-name{font-size:14px;font-weight:600;flex-shrink:0;width:64px;}
+  .tier-buttons{display:flex;gap:4px;flex:1;justify-content:flex-end;flex-wrap:nowrap;}
+  .tier-btn{
+    flex:1;
+    min-width:0;
+    padding:8px 2px;
+    border-radius:7px;
+    border:1.5px solid var(--line);
+    background:var(--bg-panel-2);
+    color:var(--text-dim);
+    font-size:10.5px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  }
   .tier-btn.sel-1{background:var(--t1);border-color:var(--t1);color:#0a0e14;}
   .tier-btn.sel-2{background:var(--t2);border-color:var(--t2);color:#0a0e14;}
   .tier-btn.sel-3{background:var(--t3);border-color:var(--t3);color:#0a0e14;}
@@ -54,6 +58,7 @@
   .tier-btn.sel-5{background:var(--t5);border-color:var(--t5);color:#0a0e14;}
   .submit-btn{width:100%;padding:14px;border-radius:9px;border:none;background:var(--gold);color:#0a0e14;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px;}
   .submit-btn:disabled{background:var(--bg-panel-2);color:var(--text-dim);cursor:not-allowed;}
+  .primary-btn{width:100%;padding:14px;border-radius:9px;border:none;background:var(--gold);color:#0a0e14;font-size:15px;font-weight:700;cursor:pointer;}
   .back-link{color:var(--text-dim);font-size:13px;cursor:pointer;display:inline-block;margin-bottom:12px;}
   .refresh-link{color:var(--teal);font-size:12.5px;cursor:pointer;display:inline-block;margin-bottom:12px;float:right;}
   .empty-msg{text-align:center;color:var(--text-dim);font-size:13.5px;padding:20px 0;}
@@ -87,27 +92,23 @@
   .no-vote-chip{opacity:0.5;}
   .summary-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-dim);margin-bottom:2px;}
   .summary-row b{color:var(--gold-bright);}
-  .setup-box{padding:14px;}
-  .setup-box input{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--text);font-size:13px;margin-top:8px;}
-  .setup-box button{margin-top:10px;}
 </style>
 </head>
 <body>
 <div class="wrap" id="app"><div class="loading">불러오는 중...</div></div>
 
 <script>
-const API_URL = "/api/data"; // 같은 사이트 안의 API라 별도 설정 필요 없음
-
+const API_URL = "/api/data";
 const NAMES = ["주동하","차영환","심하운","박효주","이재광","이호재","박종운","홍희준","박준혁","김성준","오창하","사재원"];
 
-let state = { screen: "results", myName: null, voters: [], ratings: {} };
+let state = { screen: "results", ratings: {} };
 const app = document.getElementById('app');
 
-function getMyName(){
-  try{ return localStorage.getItem('myName') || null; }catch(e){ return null; }
+function hasSubmittedBefore(){
+  try{ return localStorage.getItem('submitted') === 'true'; }catch(e){ return false; }
 }
-function setMyName(name){
-  try{ localStorage.setItem('myName', name); }catch(e){}
+function markSubmitted(){
+  try{ localStorage.setItem('submitted', 'true'); }catch(e){}
 }
 
 async function apiGet(){
@@ -125,78 +126,45 @@ async function apiPost(payload){
   return await res.json();
 }
 
-function uuid(){
-  if(window.crypto && crypto.randomUUID) return crypto.randomUUID().replace(/-/g,'');
-  return 'id' + Date.now() + Math.random().toString(16).slice(2);
-}
-
 async function init(){
-  state.myName = getMyName();
   state.screen = 'results';
   render();
 }
 
 function render(){
-  if(state.screen === 'select') renderSelect();
-  else if(state.screen === 'rate') renderRate();
-  else if(state.screen === 'results') renderResults();
-}
-
-function renderSelect(){
-  const votedCount = state.voters.length;
-  app.innerHTML = `
-    <div class="title">LoL 티어 체크</div>
-    <div class="subtitle">12명이 서로를 몰래 평가합니다.<br>누가 어떤 점수를 줬는지는 아무도 알 수 없어요.</div>
-    <div class="card">
-      <div class="progress-row"><span>참여 현황</span><span>${votedCount} / ${NAMES.length}명</span></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${(votedCount/NAMES.length*100).toFixed(0)}%"></div></div>
-      <div id="selectMsg"></div>
-      <div style="font-size:12px;color:var(--text-dim);margin-top:8px;">본인 이름을 눌러 평가를 시작하세요</div>
-      <div class="name-grid" id="nameGrid"></div>
-      <button class="link-btn" id="goResults">→ 지금까지의 결과 보기</button>
-    </div>
-  `;
-  const grid = document.getElementById('nameGrid');
-  NAMES.forEach(name => {
-    const voted = state.voters.includes(name);
-    const btn = document.createElement('div');
-    btn.className = 'name-btn';
-    btn.textContent = name;
-    btn.onclick = () => onSelectName(name, voted);
-    grid.appendChild(btn);
-  });
-  document.getElementById('goResults').onclick = () => { state.screen = 'results'; render(); };
-}
-
-async function onSelectName(name, alreadyVoted){
-  state.myName = name;
-  setMyName(name);
-  state.ratings = {};
-  state.reVoting = alreadyVoted;
-  state.screen = 'rate';
-  render();
+  if(state.screen === 'rate') renderRate();
+  else renderResults();
 }
 
 function renderRate(){
-  const others = NAMES.filter(n => n !== state.myName);
-  const doneCount = Object.keys(state.ratings).length;
+  if(hasSubmittedBefore()){
+    app.innerHTML = `
+      <div class="back-link" id="backBtn">← 결과로</div>
+      <div class="card">
+        <div class="banner info">이 브라우저(기기)에서는 이미 평가를 제출하셨어요. 참여해주셔서 감사합니다!</div>
+      </div>
+    `;
+    document.getElementById('backBtn').onclick = () => { state.screen = 'results'; render(); };
+    return;
+  }
+  state.ratings = {};
+  const doneCount = 0;
   app.innerHTML = `
-    <div class="back-link" id="backBtn">← 뒤로</div>
+    <div class="back-link" id="backBtn">← 결과로</div>
     <div class="card">
-      <div class="rate-header"><h2>${state.myName}님의 평가</h2><span class="rate-count">${doneCount} / ${others.length}</span></div>
-      ${state.reVoting ? '<div class="banner info">이전에 제출한 기록이 있어요. 다시 제출하면 이전 답변을 덮어씁니다.</div>' : ''}
+      <div class="rate-header"><h2>익명 평가하기</h2><span class="rate-count" id="rateCount">0 / ${NAMES.length}</span></div>
+      <div class="banner info">누구인지 밝히지 않고 12명 전원을 평가합니다. 여러 번 제출해도 서버는 누가 냈는지 알 수 없어요.</div>
       <div id="targetList"></div>
       <div id="submitMsg"></div>
       <button class="submit-btn" id="submitBtn" disabled>평가 제출하기</button>
-      <div style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:14px;">1티어(최고) ~ 5티어(최하)</div>
     </div>
   `;
-  document.getElementById('backBtn').onclick = () => { state.screen = 'select'; render(); };
+  document.getElementById('backBtn').onclick = () => { state.screen = 'results'; render(); };
   const list = document.getElementById('targetList');
-  others.forEach(name => {
+  NAMES.forEach(name => {
     const row = document.createElement('div');
     row.className = 'target-row';
-    const btnsHtml = [1,2,3,4,5].map(t => `<button class="tier-btn" data-name="${name}" data-tier="${t}">${t}</button>`).join('');
+    const btnsHtml = [1,2,3,4,5].map(t => `<button class="tier-btn" data-name="${name}" data-tier="${t}">${t}티어</button>`).join('');
     row.innerHTML = `<div class="target-name">${name}</div><div class="tier-buttons">${btnsHtml}</div>`;
     list.appendChild(row);
   });
@@ -208,17 +176,17 @@ function renderRate(){
       list.querySelectorAll('.tier-btn[data-name="' + name + '"]').forEach(b => {
         b.className = 'tier-btn' + (parseInt(b.dataset.tier) === tier ? ' sel-' + tier : '');
       });
-      updateSubmitState(others.length);
+      updateSubmitState();
     };
   });
-  updateSubmitState(others.length);
+  updateSubmitState();
   document.getElementById('submitBtn').onclick = submitRatings;
 }
 
-function updateSubmitState(totalOthers){
+function updateSubmitState(){
   const doneCount = Object.keys(state.ratings).length;
-  document.querySelector('.rate-count').textContent = doneCount + ' / ' + totalOthers;
-  document.getElementById('submitBtn').disabled = doneCount < totalOthers;
+  document.getElementById('rateCount').textContent = doneCount + ' / ' + NAMES.length;
+  document.getElementById('submitBtn').disabled = doneCount < NAMES.length;
 }
 
 async function submitRatings(){
@@ -228,11 +196,12 @@ async function submitRatings(){
   btn.textContent = '제출 중...';
   msgBox.innerHTML = '';
   try{
-    const result = await apiPost({ type: 'submission', name: state.myName, ratings: state.ratings });
+    const result = await apiPost({ type: 'submission', ratings: state.ratings });
     if(!result || result.ok !== true){
       throw new Error('서버가 저장 실패를 반환했어요.');
     }
     msgBox.innerHTML = '<div class="banner ok">제출 완료! 결과로 이동합니다...</div>';
+    markSubmitted();
     setTimeout(() => { state.screen = 'results'; render(); }, 500);
   }catch(e){
     console.error(e);
@@ -243,14 +212,15 @@ async function submitRatings(){
 }
 
 async function renderResults(){
+  const submittedBefore = hasSubmittedBefore();
   app.innerHTML = `
     <span class="refresh-link" id="refreshBtn">↻ 새로고침</span>
-    <div class="back-link" id="backBtn">← 참여자 선택으로</div>
     <div class="title" style="font-size:22px;">익명 평가 결과</div>
     <div class="subtitle" id="resultsSubtitle">불러오는 중...</div>
     <div class="card" id="resultsCard"><div class="loading">집계 중...</div></div>
+    <button class="primary-btn" id="goRateBtn">${submittedBefore ? '이미 참여 완료 (다시 보기)' : '평가 참여하기'}</button>
   `;
-  document.getElementById('backBtn').onclick = () => { state.screen = 'select'; render(); };
+  document.getElementById('goRateBtn').onclick = () => { state.screen = 'rate'; render(); };
   document.getElementById('refreshBtn').onclick = () => renderResults();
 
   const card = document.getElementById('resultsCard');
@@ -265,8 +235,6 @@ async function renderResults(){
   }
 
   const submissions = data.submissions || [];
-  const voters = data.voters || [];
-  state.voters = voters;
 
   const totals = {};
   NAMES.forEach(n => totals[n] = {sum:0, count:0, dist:{1:0,2:0,3:0,4:0,5:0}});
@@ -287,7 +255,7 @@ async function renderResults(){
   const grandAvg = grandCount > 0 ? (grandSum / grandCount).toFixed(2) : '-';
 
   document.getElementById('resultsSubtitle').textContent =
-    voters.length + ' / ' + NAMES.length + '명 참여 · 숫자가 낮을수록 좋은 평가예요';
+    submissions.length + '건 제출됨 · 숫자가 낮을수록 좋은 평가예요';
 
   if(submissions.length === 0){
     card.innerHTML = '<div class="empty-msg">아직 제출된 평가가 없어요.<br>가장 먼저 참여해보세요!</div>';

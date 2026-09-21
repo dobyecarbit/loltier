@@ -3,28 +3,27 @@ import { kv } from '@vercel/kv';
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
-      const hash = (await kv.hgetall('submissions_by_name')) || {};
-      const submissions = Object.values(hash).map((v) => {
+      const raw = (await kv.lrange('submissions_anon', 0, -1)) || [];
+      const submissions = raw.map((v) => {
         let parsed = v;
         if (typeof v === 'string') {
           try { parsed = JSON.parse(v); } catch (e) { parsed = null; }
         }
         return parsed ? { ratings: parsed } : null;
       }).filter(Boolean);
-      const voters = Object.keys(hash);
-      res.status(200).json({ voters, submissions });
+      res.status(200).json({ submissions, count: submissions.length });
       return;
     }
 
     if (req.method === 'POST') {
       const body = req.body || {};
       if (body.type === 'submission') {
-        if (!body.name || !body.ratings) {
+        if (!body.ratings) {
           res.status(400).json({ ok: false, error: 'missing fields' });
           return;
         }
-        // 이름을 key로 저장하므로, 같은 이름으로 다시 제출하면 이전 답변을 덮어씀
-        await kv.hset('submissions_by_name', { [body.name]: JSON.stringify(body.ratings) });
+        // 완전 익명: 누가 제출했는지 서버도 저장하지 않음. 매 제출은 새 항목으로 추가됨.
+        await kv.rpush('submissions_anon', JSON.stringify(body.ratings));
         res.status(200).json({ ok: true });
         return;
       }
