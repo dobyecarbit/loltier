@@ -109,6 +109,12 @@ function getMyName(){
 function setMyName(name){
   try{ localStorage.setItem('myName', name); }catch(e){}
 }
+function getHasVoted(){
+  try{ return localStorage.getItem('hasVoted') === 'true'; }catch(e){ return false; }
+}
+function setHasVoted(){
+  try{ localStorage.setItem('hasVoted', 'true'); }catch(e){}
+}
 
 async function apiGet(){
   const res = await fetch(API_URL, { method: 'GET' });
@@ -160,8 +166,8 @@ function renderSelect(){
   NAMES.forEach(name => {
     const voted = state.voters.includes(name);
     const btn = document.createElement('div');
-    btn.className = 'name-btn' + (voted ? ' voted' : '');
-    btn.innerHTML = name + (voted ? '<span class="tag">참여완료</span>' : '');
+    btn.className = 'name-btn';
+    btn.textContent = name;
     btn.onclick = () => onSelectName(name, voted);
     grid.appendChild(btn);
   });
@@ -237,6 +243,7 @@ async function submitRatings(){
       throw new Error('서버가 저장 실패를 반환했어요.');
     }
     msgBox.innerHTML = '<div class="banner ok">제출 완료! 결과로 이동합니다...</div>';
+    setHasVoted();
     setTimeout(() => { state.screen = 'results'; render(); }, 500);
   }catch(e){
     console.error(e);
@@ -247,14 +254,17 @@ async function submitRatings(){
 }
 
 async function renderResults(){
+  const voted = getHasVoted();
   app.innerHTML = `
     <span class="refresh-link" id="refreshBtn">↻ 새로고침</span>
-    <div class="back-link" id="backBtn">← 참여자 선택으로</div>
+    ${voted ? '' : '<div class="back-link" id="backBtn">← 참여자 선택으로</div>'}
     <div class="title" style="font-size:22px;">익명 평가 결과</div>
     <div class="subtitle" id="resultsSubtitle">불러오는 중...</div>
     <div class="card" id="resultsCard"><div class="loading">집계 중...</div></div>
   `;
-  document.getElementById('backBtn').onclick = () => { state.screen = 'select'; render(); };
+  if(!voted){
+    document.getElementById('backBtn').onclick = () => { state.screen = 'select'; render(); };
+  }
   document.getElementById('refreshBtn').onclick = () => renderResults();
 
   const card = document.getElementById('resultsCard');
