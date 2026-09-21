@@ -109,12 +109,6 @@ function getMyName(){
 function setMyName(name){
   try{ localStorage.setItem('myName', name); }catch(e){}
 }
-function getHasVoted(){
-  try{ return localStorage.getItem('hasVoted') === 'true'; }catch(e){ return false; }
-}
-function setHasVoted(){
-  try{ localStorage.setItem('hasVoted', 'true'); }catch(e){}
-}
 
 async function apiGet(){
   const res = await fetch(API_URL, { method: 'GET' });
@@ -175,14 +169,10 @@ function renderSelect(){
 }
 
 async function onSelectName(name, alreadyVoted){
-  const msgBox = document.getElementById('selectMsg');
-  if(alreadyVoted){
-    msgBox.innerHTML = '<div class="banner info">' + name + '님은 이미 평가를 완료했어요. 아래 "결과 보기"에서 확인해보세요.</div>';
-    return;
-  }
   state.myName = name;
   setMyName(name);
   state.ratings = {};
+  state.reVoting = alreadyVoted;
   state.screen = 'rate';
   render();
 }
@@ -194,6 +184,7 @@ function renderRate(){
     <div class="back-link" id="backBtn">← 뒤로</div>
     <div class="card">
       <div class="rate-header"><h2>${state.myName}님의 평가</h2><span class="rate-count">${doneCount} / ${others.length}</span></div>
+      ${state.reVoting ? '<div class="banner info">이전에 제출한 기록이 있어요. 다시 제출하면 이전 답변을 덮어씁니다.</div>' : ''}
       <div id="targetList"></div>
       <div id="submitMsg"></div>
       <button class="submit-btn" id="submitBtn" disabled>평가 제출하기</button>
@@ -237,13 +228,11 @@ async function submitRatings(){
   btn.textContent = '제출 중...';
   msgBox.innerHTML = '';
   try{
-    const id = uuid();
-    const result = await apiPost({ type: 'submission', id: id, name: state.myName, ratings: state.ratings });
+    const result = await apiPost({ type: 'submission', name: state.myName, ratings: state.ratings });
     if(!result || result.ok !== true){
       throw new Error('서버가 저장 실패를 반환했어요.');
     }
     msgBox.innerHTML = '<div class="banner ok">제출 완료! 결과로 이동합니다...</div>';
-    setHasVoted();
     setTimeout(() => { state.screen = 'results'; render(); }, 500);
   }catch(e){
     console.error(e);
@@ -254,17 +243,14 @@ async function submitRatings(){
 }
 
 async function renderResults(){
-  const voted = getHasVoted();
   app.innerHTML = `
     <span class="refresh-link" id="refreshBtn">↻ 새로고침</span>
-    ${voted ? '' : '<div class="back-link" id="backBtn">← 참여자 선택으로</div>'}
+    <div class="back-link" id="backBtn">← 참여자 선택으로</div>
     <div class="title" style="font-size:22px;">익명 평가 결과</div>
     <div class="subtitle" id="resultsSubtitle">불러오는 중...</div>
     <div class="card" id="resultsCard"><div class="loading">집계 중...</div></div>
   `;
-  if(!voted){
-    document.getElementById('backBtn').onclick = () => { state.screen = 'select'; render(); };
-  }
+  document.getElementById('backBtn').onclick = () => { state.screen = 'select'; render(); };
   document.getElementById('refreshBtn').onclick = () => renderResults();
 
   const card = document.getElementById('resultsCard');
