@@ -5,10 +5,11 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const hash = (await kv.hgetall('submissions_by_name')) || {};
       const submissions = Object.values(hash).map((v) => {
+        let parsed = v;
         if (typeof v === 'string') {
-          try { return JSON.parse(v); } catch (e) { return null; }
+          try { parsed = JSON.parse(v); } catch (e) { parsed = null; }
         }
-        return v; // already-parsed object case
+        return parsed ? { ratings: parsed } : null;
       }).filter(Boolean);
       const voters = Object.keys(hash);
       res.status(200).json({ voters, submissions });
